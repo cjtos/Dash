@@ -1,0 +1,543 @@
+# Import library
+import dash_mantine_components as dmc
+from dash import Dash, html
+import dash_bootstrap_components as dbc
+from dash import Dash, html, dash_table
+from dash import dcc, Input, Output, callback
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import warnings
+warnings.filterwarnings("ignore")
+
+data = pd.read_csv('inventory_data_final.csv')
+data['weekenddt'] = pd.to_datetime(data['weekenddt'], format='%d/%m/%Y')
+maxdate = str(data['weekenddt'].max())
+
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP])
+
+style_container = {
+    "height": "100vh",
+    "marginTop": 20,
+    "marginBottom": 20
+}
+
+style_grid1 = {
+    "border": f"1px solid {dmc.theme.DEFAULT_COLORS['indigo'][4]}",
+    "textAlign": "center",
+}
+
+app.layout = html.Div(
+    children=[
+        dmc.Container(
+            [
+                dmc.Header(
+                    height=60,
+                    children=[dmc.Group([
+                        dmc.Text("Inventory Management Dashboard", weight=700, size='xl', color='black'),
+                        dmc.Group(
+                            [
+                                dmc.ActionIcon(
+                                    html.I(className="bi bi-sun",style={'color': 'indigo'},
+                                    id='switch-theme', n_clicks=0)),
+                            ],
+                        ),
+                    ], position="apart"),
+                    ],
+                    style={"backgroundColor": "#9c86e2"},
+                    p="md",
+                ),
+
+                # pseudo row
+                dmc.Grid([
+                    dmc.Col([
+                        dmc.Select(
+                            placeholder="Select Period",
+                            id="time",
+                            data=[
+                                {"value": 1, "label": "1 month ago"},
+                                {"value": 3, "label": "3 months ago"},
+                                {"value": 6, "label": "6 months ago"},
+                            ],
+                            value=1,
+                            style={"width": 150},
+                        ),
+                        dmc.Text(id="selected-value3"),
+                    ], span="content"),
+                    dmc.Col([
+                        dmc.Select(
+                            placeholder="Select location",
+                            id="location",
+                            data=["ALL","NSW","QLD"],
+                            value="ALL",
+                            style={"width": 150},
+                        ),
+                        dmc.Text(id="selected-value4"),
+                    ], span="auto"),
+                ], mt=2, gutter="xs",),
+
+                # row1
+                dmc.Grid(
+                    children=[
+                        dmc.Col(
+                            dmc.Card(
+                                children=[
+                                    dmc.CardSection(
+                                        dmc.Group(
+                                            children=[
+                                                dmc.Text("Inventory Trend by Sales", weight=500),
+                                                dmc.Group(
+                                                    children=[
+                                                        dmc.Select(
+                                                            placeholder="Select one",
+                                                            id="numprod",
+                                                            data=[
+                                                                {"value": 5, "label": "Top 5"},
+                                                                {"value": 10, "label": "Top 10"},
+                                                                {"value": -5, "label": "Lowest 5"},
+                                                                {"value": -10, "label": "Lowest 10"},
+                                                            ],
+                                                            value=10,
+                                                            style={"width": 180},
+                                                        ),
+                                                        dmc.Text(id="selected-value"),
+                                                        #dmc.ActionIcon(
+                                                    ],
+                                                ),
+                                            ],
+                                            position="apart",
+                                        ),
+                                        withBorder=True,
+                                        inheritPadding=True,
+                                        py="xs",
+                                    ),
+                                    dmc.Text(
+                                        children=[
+                                        dcc.Graph(id="graph"),
+                                        ],
+                                    ),
+                                ],
+                                withBorder=True,
+                                shadow="sm",
+                                radius="xs",
+                                mt="xs",
+                            ), span=5),
+                        dmc.Col(
+                            dmc.Card([
+                                dmc.CardSection([
+                                    dmc.Stack([
+                                        dmc.Card(
+                                            children=[
+                                                dmc.Text(
+                                                    dmc.Center(
+                                                        html.Div([
+                                                            dmc.RingProgress(id="fulfillment",
+                                                                             size=170,
+                                                                             thickness=18,
+                                                                             roundCaps=True,
+                                                                             sections=[{"value": 0, "color": "indigo"}],
+                                                                             label=dmc.Center(
+                                                                                 dmc.Text(id="full2", color="indigo",
+                                                                                          size=30)),
+                                                                             ),
+                                                            html.Div("", style={'font-size': '18px',
+                                                                                'font-family': 'Arial'})
+                                                        ]),
+                                                    ),
+                                                    size="sm",
+                                                    color="dimmed",
+                                                ),
+                                                dmc.Text(
+                                                    dmc.Center(
+                                                        "Fulfillment Rate",
+                                                        style={'font-size': '20px',
+                                                               'font-family': 'Arial', },
+                                                    ),
+                                                ),
+                                            ],
+                                            withBorder=True,
+                                            shadow="sm",
+                                            radius="xs",
+                                            style={"height": "100%"}
+                                        ),
+                                        dmc.Card(
+                                            children=[
+                                                dmc.Text(
+                                                    dmc.Center(
+                                                        html.Div([
+                                                            html.Div(id="lead",
+                                                                     style={'font-size': '100px',
+                                                                            'font-family': 'Arial',
+                                                                            'display': 'inline-block'},
+                                                                     ),
+
+                                                            html.Div("Days",
+                                                                     style={'font-size': '30px',
+                                                                            'font-family': 'Arial',
+                                                                            'display': 'inline-block',
+                                                                            },
+                                                                     ),
+                                                        ], style={'display': 'inline-block'}),
+                                                    ),
+                                                    size="sm",
+                                                    color="dimmed",
+                                                ),
+                                                dmc.Text(
+                                                    dmc.Center(
+                                                        "Average Lead Time",
+                                                        style={'font-size': '20px',
+                                                               'font-family': 'Arial', },
+                                                    ),
+                                                ),
+                                            ],
+                                            withBorder=True,
+                                            shadow="sm",
+                                            radius="xs",
+                                            style={"height": "100%"}
+                                        ),
+                                    ], align="stretch",
+                                        justify="space-around"),
+                                ],
+                                ),
+                            ]),
+                            span="auto",
+                            mt="xs",
+                            style={"height": "100%"}
+                        ),
+
+                        dmc.Col(
+                            dmc.Card(
+                                children=[
+                                    dmc.CardSection(
+                                        dmc.Group(
+                                            children=[
+                                                dmc.Text("Total Valuation (In Stock)", weight=500),
+                                                dmc.Group(
+                                                    position="apart",
+                                                ),
+                                            ],
+                                            position="apart",
+                                        ),
+                                        withBorder=True,
+                                        inheritPadding=True,
+                                        py="xs",
+                                    ),
+                                    dmc.Text(
+                                        children=[
+                                            dcc.Graph(id='graph2')
+                                        ],
+                                    ),
+                                ],
+                                withBorder=True,
+                                shadow="sm",
+                                radius="xs",
+                                mt="xs",
+                            ), span=5),
+                    ],
+                    justify="center",
+                    align="top",
+                    gutter="xs",
+                ),
+                # row2
+                dmc.Grid([
+                    dmc.Col(
+                        dmc.Card(
+                            children=[
+                                dmc.CardSection(
+                                    dmc.Group(
+                                        children=[
+                                            dmc.Text(f"Total SKUs by Status: {maxdate[:10]}", weight=500),
+                                            dmc.Group(
+                                                position="apart",
+                                            ),
+                                        ],
+                                        position="apart",
+                                    ),
+                                    withBorder=True,
+                                    inheritPadding=True,
+                                    py="xs"
+                                ),
+                                dcc.Graph(id='tree'),
+                            ],
+                            withBorder=True,
+                            shadow="sm",
+                            radius="xs",
+                            mt="xs",
+                        ), span=4),
+                    dmc.Col(
+                        dmc.Card(
+                            children=[
+                                dmc.CardSection(
+                                    dmc.Group(
+                                        children=[
+                                            dmc.Text("Total Stock Overview", weight=500),
+                                            dash_table.DataTable(
+                                                id='grouptable',
+                                                columns=[
+                                                    {"name": "SKU ID", "id": "sku_id", "type": "text"},
+                                                    {"name": "Category", "id": "category", "type": "text"},
+                                                    {"name": "Product", "id": "product", "type": "text"},
+                                                    {"name": "Quantity Sold", "id": "qtysold", "type": "numeric"},
+                                                    {"name": "Total In Stock", "id": "qtyinstock", "type": "numeric"},
+                                                    {"name": "Order Quantity", "id": "qtyorder", "type": "numeric"},
+                                                    {"name": "Avg. Lead Days", "id": "avg_lead_days",
+                                                     "type": "numeric"},
+                                                    {"name": "Avg. Unit Price ($)", "id": "unit_price",
+                                                     "type": "numeric"}
+                                                ],
+                                                data=data.to_dict('records'),
+                                                filter_action="native",
+                                                filter_options={'case':'insensitive'},
+                                                sort_action="native",
+                                                sort_mode="single",
+                                                column_selectable="single",
+                                                row_deletable=True,
+                                                page_action="native",
+                                                page_current=0,
+                                                page_size=10,
+                                                style_cell = {
+                                                    'font_family': 'sans-serif',
+                                                    'font_size': '12px',
+                                                    'text_align': 'left'},
+                                                style_header={
+                                                    'backgroundColor': 'Lavender',
+                                                    'fontWeight': 'bold', 'color':'black'},
+                                                style_data={'color': 'black'},
+                                                export_format="xlsx"
+                                            ) 
+                                        ],
+                                        position="apart",
+                                    ),
+                                    withBorder=True,
+                                    inheritPadding=True,
+                                    py="xs",
+                                )
+                            ],
+                            withBorder=True,
+                            shadow="sm",
+                            radius="xs",
+                            mt="xs",
+                        ), span=8),
+                ],
+                    justify="center",
+                    align="top",
+                    gutter="xs", )
+            ],
+            style=style_container,
+            fluid=True,
+        ),
+    ]
+)
+
+@callback(
+    Output('graph', 'figure'),
+    Input('location', 'value'),
+    Input('time', 'value'),
+    Input('numprod', 'value'),
+    Input("switch-theme", "n_clicks"),
+        prevent_intial_call=True)
+
+def update_graph(location, time, numprod, n_clicks):
+    if location=="ALL":
+        data1 = data
+    else:
+        data1 = data[data['loc'] == location]
+        data1 = data1.reset_index(drop=True)
+
+    today = data1['weekenddt'].max()
+    monthago = today - pd.DateOffset(months=time)
+    data1 = data1[data1['weekenddt'] >= monthago]
+
+    # Inventory trend chart
+    data2 = data1.groupby('product', as_index=False)[['qtysold','qtyinstock']].sum()
+    data2 = data2.sort_values(by=['qtysold'], ascending=False).reset_index()
+    if numprod<0:
+        data3 = data2[numprod:]
+    else:
+        data3 = data2[:numprod]
+
+    fig = go.Figure(data=[
+        go.Bar(name='Quantity sold', x=data3['qtysold'], y=data3['product'], orientation='h'),
+        go.Bar(name='In stock (By Quantity)', x=data3['qtyinstock'], y=data3['product'], orientation='h', marker=dict(color='ForestGreen'))
+        ])
+    fig.update_layout(barmode='group')
+    fig.update_layout(legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    ))
+    fig.update_layout(margin=dict(l=20, r=20, b=20, t=55), height=395)
+    fig.update_xaxes(title_text='Unit')
+    if n_clicks is not None and n_clicks % 2 == 1:
+        fig.layout.template = 'custom_dark'
+
+    return fig
+
+# Metrics
+@app.callback(
+Output('fulfillment', 'sections'),
+    Output('full2', 'children'),
+    Output('lead', 'children'),
+    Input('location', 'value'),
+    Input('time', 'value'),
+)
+def text_bottom(location, time):
+    if location == "ALL":
+        data1 = data.copy()
+    else:
+        data1 = data[data['loc'] == location]
+        data1 = data1.reset_index(drop=True)
+
+    today = data1['weekenddt'].max()
+    monthago = today - pd.DateOffset(months=time)
+    data1 = data1[data1['weekenddt'] >= monthago]
+
+    # create markdown
+    fulfill = (data1['qtyorder'].mean())/(data1['qtyinstock'].mean())*100
+    fulfill = int(fulfill)
+    fulfill2 = f'''{fulfill}%'''
+    avg_lead = int(data1["avg_lead_days"].mean()) if not data1["avg_lead_days"].isnull().all() else 0
+    text_lead = f''' {avg_lead}'''
+    return [{"value": fulfill, "color": "indigo"}], fulfill2, text_lead
+
+@callback(
+    Output('graph2', 'figure'),
+    Input('location', 'value'),
+    Input('time', 'value'),
+    Input("switch-theme", "n_clicks"),
+    prevent_intial_call=True)
+
+def update_graph(location, time, n_clicks):
+    if location=="ALL":
+        data1 = data.copy()
+    else:
+        data1 = data[data['loc'] == location]
+        data1 = data1.reset_index(drop=True)
+
+    today = data1['weekenddt'].max()
+    monthago = today - pd.DateOffset(months=time)
+    data1 = data1[data1['weekenddt'] >= monthago]
+
+    # valuation trend chart
+    data1['value']=data1['unit_price']*data1['qtyinstock']
+    data2 = data1.groupby('weekenddt').sum().reset_index()
+
+    fig = px.line(x=data2['weekenddt'], y=data2['value'], height=408, markers=True, color_discrete_sequence=["ForestGreen"])
+    if time<6:
+        fig.update_xaxes(title_text='Week ending')
+    else:
+        fig.update_xaxes(title_text='Month')
+    fig.update_layout(margin=dict(l=30, r=30, b=30, t=40, pad=4))
+    fig.update_yaxes(title_text='Total valuation ($)')
+    fig.update_traces(marker_color='ForestGreen')
+    if n_clicks is not None and n_clicks % 2 == 1:
+        fig.layout.template = 'custom_dark'
+    return fig
+
+@callback(
+    Output('grouptable', 'data'),
+    Input('location', 'value'),
+    Input('time', 'value'),
+)
+
+def update_table(location, time):
+    if location=="ALL":
+        data1 = data
+    else:
+        data1 = data[data['loc'] == location]
+        data1 = data1.reset_index(drop=True)
+
+    today = data1['weekenddt'].max()
+    monthago = today - pd.DateOffset(months=time)
+    data1 = data1[data1['weekenddt'] >= monthago]
+    data_t = data1.groupby(['sku_id', 'product', 'category'], as_index=False).agg(
+        {'qtysold': 'sum', 'qtyinstock': 'sum', 'qtyorder': 'sum', 'avg_lead_days': 'mean', 'unit_price': 'mean'})
+    data_t['unit_price'] = data_t['unit_price'].round(0)
+
+    data_records = data_t.to_dict('records')
+    columns = [
+        {"name": "SKU ID", "id": "sku_id", "type": "text"},
+        {"name": "Category", "id": "category", "type": "text"},
+        {"name": "Product", "id": "product", "type": "text"},
+        {"name": "Quantity Sold", "id": "qtysold", "type": "numeric"},
+        {"name": "Total In Stock", "id": "qtyinstock", "type": "numeric"},
+        {"name": "Order Quantity", "id": "qtyorder", "type": "numeric"},
+        {"name": "Avg. Lead Days", "id": "avg_lead_days", "type": "numeric"},
+        {"name": "Avg. Unit Price ($)", "id": "unit_price", "type": "numeric"}
+    ]
+
+    return data_records
+
+@callback(
+    Output('app-theme', 'theme'),
+    Input('app-theme', 'theme'),
+    Input("switch-theme", "n_clicks"),
+    prevent_intial_call=True)
+def switch_theme(theme, n_clicks):
+    if n_clicks is not None and n_clicks % 2 == 1:
+        theme.update({'colorScheme': 'dark'})
+    else:
+        theme.update({'colorScheme': ''})
+    return theme
+
+# Create Treemap
+@callback(
+    Output('tree', 'figure'),
+    Input('location', 'value'),
+    Input("switch-theme", "n_clicks"),
+    prevent_intial_call=True)
+
+def update_graph(location,n_clicks):
+    if location=="ALL":
+        data1 = data
+    else:
+        data1 = data[data['loc'] == location]
+        data1 = data1.reset_index(drop=True)
+
+    data1.sort_values(by='weekenddt', ascending=False, inplace=True)
+    latest = data1.groupby('sku_id').first().reset_index()
+    latest['ratio_sold'] = (latest['qtyinstock'] / latest['qtysold']).round(3)
+    iqr = latest['ratio_sold'].quantile([0.25, 0.5, 0.75]).round(3)
+    q1 = iqr.iloc[0]
+    q2 = iqr.iloc[1]
+    q3 = iqr.iloc[2]
+
+    def status_calc(row):
+        if row['ratio_sold'] <= q1:
+            return 'Out of stock'
+        elif q1 < row['ratio_sold'] <= q2:
+            return 'Below threshold'
+        elif q2 < row['ratio_sold'] <= q3:
+            return 'In stock'
+        else:
+            return 'Overstock'
+
+    latest['status'] = latest.apply(status_calc, axis=1)
+    status_count = latest[['status', 'loc', 'category']].value_counts().reset_index()
+    status_count.columns = ['status', 'loc', 'category', 'count']
+    status_count.sort_values(by=['category', 'status'], ascending=True, inplace=True)
+    colour = {
+        'Below threshold': 'Orange',
+        'Out of stock': 'FireBrick',
+        'In stock': 'ForestGreen',
+        'Overstock': 'Yellow'}
+    fig = px.treemap(status_count, path=['status','category'],
+                     values='count', color='status',width=450, height=422, color_discrete_map=colour)
+    fig.update_layout(margin=dict(l=5, r=20, b=5, t=0))
+    fig.data[0].textinfo = 'label+value'
+    fig.data[0].hoverinfo = 'skip'
+    fig.data[0].hovertemplate = None
+    fig.to_html(config={"staticPlot": True})
+    fig.update_traces(
+        textfont_size=18,
+        textposition='middle center'
+    )
+    if n_clicks is not None and n_clicks % 2 == 1:
+        fig.layout.template = 'custom_dark'
+    return fig
+
+if __name__ == "__main__":
+    # app.run_server(debug=True)
+    app.run_server()
